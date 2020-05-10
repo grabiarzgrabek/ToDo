@@ -3,6 +3,8 @@
 
 from flask import Flask, g
 from flask import render_template
+from datetime import datetime
+from flask import flash, redirect, url_for, request
 import os
 import sqlite3
 
@@ -33,6 +35,28 @@ def close_db(error):
 @app.route('/')
 def index():
     return 'Lista ToDo'
+
+@app.route('/zadania', methods=['GET', 'POST'])
+def zadania():
+    error = None
+    if request.method == 'POST':
+        zadanie = request.form['zadanie'].strip()
+        if len(zadanie) > 0:
+            zrobione = '0'
+            data_pub = datetime.now()
+            db = get_db()
+            db.execute('INSERT INTO zadania VALUES (?, ?, ?, ?);',
+                       [None, zadanie, zrobione, data_pub])
+            db.commit()
+            flash('Dodano nowe zadanie.')
+            return redirect(url_for('zadania'))
+
+        error = 'Nie możesz dodać pustego zadania!'  # komunikat o błędzie
+
+    db = get_db()
+    kursor = db.execute('SELECT * FROM zadania ORDER BY data_pub DESC;')
+    zadania = kursor.fetchall()
+    return render_template('zadania_lista.html', zadania=zadania, error=error)
 
 
 if __name__ == '__main__':
